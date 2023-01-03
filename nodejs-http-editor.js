@@ -48,37 +48,43 @@ function servFunc(req, res) {
 function processMkdirTouchAndSave(req,res,url) {
 	parseBody (req, function (fields) {
 		console.log(JSON.stringify(fields));
-		if(fields.dir!=undefined && fields.dir.indexOf(CREATE_DIR_PREFIX)>-1) {
-			url = cleanUpUrl(url);
-			var dirToCreate = fields.dir.replace(CREATE_DIR_PREFIX,"");
-			console.log(__dirname+url+dirToCreate);
-			fs.mkdirSync(__dirname+url+dirToCreate);
-			listFilesInDir(url, res);
-		} else if(fields.fName!=undefined && fields.fName.indexOf(CREATE_FILE_PREFIX)>-1) {
-			url = cleanUpUrl(url);
-			var fileToCreate = fields.fName.replace(CREATE_FILE_PREFIX,"");
-			console.log(__dirname+url+fileToCreate);
-			fs.writeFileSync(__dirname+url+fileToCreate,"");
-			listFilesInDir(url, res);
-		} else if(fields.fPath!=undefined && fields.fPath.indexOf(SAVE_FILE_PREFIX)>-1 && fields.content!=undefined) {
-			if (url.indexOf("_FILE_") > -1) {
-				url = url.replace("_FILE_","");
-				url = url.replace(".","").trim();
+		try {
+			if(fields.dir!=undefined && fields.dir.indexOf(CREATE_DIR_PREFIX)>-1) {
+				url = cleanUpUrl(url);
+				var dirToCreate = fields.dir.replace(CREATE_DIR_PREFIX,"");
+				console.log(__dirname+url+dirToCreate);
+				fs.mkdirSync(__dirname+url+dirToCreate);
+				listFilesInDir(url, res);
+			} else if(fields.fName!=undefined && fields.fName.indexOf(CREATE_FILE_PREFIX)>-1) {
+				url = cleanUpUrl(url);
+				var fileToCreate = fields.fName.replace(CREATE_FILE_PREFIX,"");
+				console.log(__dirname+url+fileToCreate);
+				fs.writeFileSync(__dirname+url+fileToCreate,"");
+				listFilesInDir(url, res);
+			} else if(fields.fPath!=undefined && fields.fPath.indexOf(SAVE_FILE_PREFIX)>-1 && fields.content!=undefined) {
+				if (url.indexOf("_FILE_") > -1) {
+					url = url.replace("_FILE_","");
+					url = url.replace(".","").trim();
+				}
+				if(url[url.length-1]=="/") {
+					url = url.substring(0,url.length-1);
+				}
+				var fileToSave = fields.fPath.replace(SAVE_FILE_PREFIX,"");
+				if(fileToSave[fileToSave.length-1]=="/") {
+					fileToSave = fileToSave.substring(0,fileToSave.length-1);
+				}
+				console.log("Saving to..."+__dirname+"/"+fileToSave);
+				console.log(`content to be written ${fields.content}`);
+				fs.writeFileSync(__dirname+"/"+fileToSave,fields.content);
+				var urlSplit = url.split("/");
+				url = url.replace("/"+urlSplit[urlSplit.length-1],"");
+				console.log("will redirect to "+url);
+				listFilesInDir(url, res, url);
 			}
-			if(url[url.length-1]=="/") {
-				url = url.substring(0,url.length-1);
-			}
-			var fileToSave = fields.fPath.replace(SAVE_FILE_PREFIX,"");
-			if(fileToSave[fileToSave.length-1]=="/") {
-				fileToSave = fileToSave.substring(0,fileToSave.length-1);
-			}
-			console.log("Saving to..."+__dirname+"/"+fileToSave);
-			console.log(`content to be written ${fields.content}`);
-			fs.writeFileSync(__dirname+"/"+fileToSave,fields.content);
-			var urlSplit = url.split("/");
-			url = url.replace("/"+urlSplit[urlSplit.length-1],"");
-			console.log("will redirect to "+url);
-			listFilesInDir(url, res, url);
+		} catch(e) {
+			console.log(e);
+			res.writeHead(200, { 'Content-Type': 'text/html' });
+			res.end("Error occured: "+JSON.stringify(e)+"<br><a href='/'>Goto Home</a>");
 		}
 	});
 }
