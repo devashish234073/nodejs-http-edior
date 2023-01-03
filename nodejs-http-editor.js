@@ -75,7 +75,7 @@ function processMkdirTouchAndSave(req,res,url) {
 				}
 				console.log("Saving to..."+__dirname+"/"+fileToSave);
 				console.log(`content to be written ${fields.content}`);
-				fs.writeFileSync(__dirname+"/"+fileToSave,fields.content);
+				fs.writeFileSync(__dirname+"/"+fileToSave,String(fields.content).replace("\r\n","\n").replace("\n","\r\n"));
 				var urlSplit = url.split("/");
 				url = url.replace("/"+urlSplit[urlSplit.length-1],"");
 				console.log("will redirect to "+url);
