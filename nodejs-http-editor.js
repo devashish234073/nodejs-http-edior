@@ -37,7 +37,8 @@ function servFunc(req, res) {
 			}		
 		} catch(e) {
 			console.log(e);
-			listFilesInDir("",res,"REDIRECT_TO_HOME");
+			res.writeHead(200, { 'Content-Type': 'text/html' });
+			res.end("Error occured: "+JSON.stringify(e)+"<br><a href='/'>Goto Home</a>");
 		}
 	} else {
 		res.end("");
