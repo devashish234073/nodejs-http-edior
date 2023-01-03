@@ -36,6 +36,7 @@ function servFunc(req, res) {
 				}
 			}		
 		} catch(e) {
+			console.log(e);
 			listFilesInDir("",res,"REDIRECT_TO_HOME");
 		}
 	} else {
