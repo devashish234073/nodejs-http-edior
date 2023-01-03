@@ -25,52 +25,60 @@ function parseBody(req, callback) {
 function servFunc(req, res) {
 	var url = req.url;
 	if (url != '/favicon.ico') {
-		if(req.method=="POST") {
-			parseBody (req, function (fields) {
-				console.log(JSON.stringify(fields));
-				if(fields.dir!=undefined && fields.dir.indexOf(CREATE_DIR_PREFIX)>-1) {
-					url = cleanUpUrl(url);
-					var dirToCreate = fields.dir.replace(CREATE_DIR_PREFIX,"");
-					console.log(__dirname+url+dirToCreate);
-					fs.mkdirSync(__dirname+url+dirToCreate);
-					listFilesInDir(url, res);
-				} else if(fields.fName!=undefined && fields.fName.indexOf(CREATE_FILE_PREFIX)>-1) {
-					url = cleanUpUrl(url);
-					var fileToCreate = fields.fName.replace(CREATE_FILE_PREFIX,"");
-					console.log(__dirname+url+fileToCreate);
-					fs.writeFileSync(__dirname+url+fileToCreate,"");
-					listFilesInDir(url, res);
-				} else if(fields.fPath!=undefined && fields.fPath.indexOf(SAVE_FILE_PREFIX)>-1 && fields.content!=undefined) {
-					if (url.indexOf("_FILE_") > -1) {
-						url = url.replace("_FILE_","");
-						url = url.replace(".","").trim();
-					}
-					if(url[url.length-1]=="/") {
-						url = url.substring(0,url.length-1);
-					}
-					var fileToSave = fields.fPath.replace(SAVE_FILE_PREFIX,"");
-					if(fileToSave[fileToSave.length-1]=="/") {
-						fileToSave = fileToSave.substring(0,fileToSave.length-1);
-					}
-					console.log("Saving to..."+__dirname+"/"+fileToSave);
-					console.log(`content to be written ${fields.content}`);
-					fs.writeFileSync(__dirname+"/"+fileToSave,fields.content);
-					var urlSplit = url.split("/");
-					url = url.replace("/"+urlSplit[urlSplit.length-1],"");
-					console.log("will redirect to "+url);
-					listFilesInDir(url, res, url);
-				}
-			});
-		} else {
-			if (url.indexOf("_FILE_") > -1) {
-				viewContentOfFile(url, res);
+		try {
+			if(req.method=="POST") {
+				processMkdirTouchAndSave(req,res,url);
 			} else {
-				listFilesInDir(url, res);
-			}
+				if (url.indexOf("_FILE_") > -1) {
+					viewContentOfFile(url, res);
+				} else {
+					listFilesInDir(url, res);
+				}
+			}		
+		} catch(e) {
+			listFilesInDir("",res,"REDIRECT_TO_HOME");
 		}
 	} else {
 		res.end("");
 	}
+}
+
+function processMkdirTouchAndSave(req,res,url) {
+	parseBody (req, function (fields) {
+		console.log(JSON.stringify(fields));
+		if(fields.dir!=undefined && fields.dir.indexOf(CREATE_DIR_PREFIX)>-1) {
+			url = cleanUpUrl(url);
+			var dirToCreate = fields.dir.replace(CREATE_DIR_PREFIX,"");
+			console.log(__dirname+url+dirToCreate);
+			fs.mkdirSync(__dirname+url+dirToCreate);
+			listFilesInDir(url, res);
+		} else if(fields.fName!=undefined && fields.fName.indexOf(CREATE_FILE_PREFIX)>-1) {
+			url = cleanUpUrl(url);
+			var fileToCreate = fields.fName.replace(CREATE_FILE_PREFIX,"");
+			console.log(__dirname+url+fileToCreate);
+			fs.writeFileSync(__dirname+url+fileToCreate,"");
+			listFilesInDir(url, res);
+		} else if(fields.fPath!=undefined && fields.fPath.indexOf(SAVE_FILE_PREFIX)>-1 && fields.content!=undefined) {
+			if (url.indexOf("_FILE_") > -1) {
+				url = url.replace("_FILE_","");
+				url = url.replace(".","").trim();
+			}
+			if(url[url.length-1]=="/") {
+				url = url.substring(0,url.length-1);
+			}
+			var fileToSave = fields.fPath.replace(SAVE_FILE_PREFIX,"");
+			if(fileToSave[fileToSave.length-1]=="/") {
+				fileToSave = fileToSave.substring(0,fileToSave.length-1);
+			}
+			console.log("Saving to..."+__dirname+"/"+fileToSave);
+			console.log(`content to be written ${fields.content}`);
+			fs.writeFileSync(__dirname+"/"+fileToSave,fields.content);
+			var urlSplit = url.split("/");
+			url = url.replace("/"+urlSplit[urlSplit.length-1],"");
+			console.log("will redirect to "+url);
+			listFilesInDir(url, res, url);
+		}
+	});
 }
 
 function viewContentOfFile(url, res) {
@@ -116,7 +124,11 @@ function listFilesInDir(url, res,redirectAfterSave) {
 	html = wrapHtmlInTable(html);
 	html += getStyle() + getFileListingScript();
 	if(redirectAfterSave!=undefined) {
-		html+="<script>alert('Saved..');window.location.href='"+url+"';</script>";
+		if(redirectAfterSave=="REDIRECT_TO_HOME") {
+			html+="<script>window.location.href='';</script>";
+		} else {
+			html+="<script>alert('Saved..');window.location.href='"+url+"';</script>";
+		}
 	}
 	res.writeHead(200, { 'Content-Type': 'text/html' });
 	res.end(html);
